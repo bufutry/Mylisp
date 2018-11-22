@@ -3,6 +3,7 @@
 //
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
 
 #include <time.h>
 
@@ -39,11 +40,23 @@ void currentTime(){
 
 }
 
+long max(long x,long y){
+  return x > y ? x : y;
+}
+
+long min(long x,long y){
+   return x < y ? x : y;
+}
+
 long eval_op(long x , char * op ,long y){
   if (strcmp(op,"+") == 0){return x + y ;}
   if (strcmp(op,"-") == 0){return x - y ;}
   if (strcmp(op,"*") == 0){return x * y ;}
   if (strcmp(op,"/") == 0){return x / y ;}
+  if (strcmp(op,"%") == 0){return x % y ;}
+  if (strcmp(op,"^") == 0){return pow(x,y) ;}
+  if (strcmp(op,"min") == 0){return min(x,y) ;}
+  if (strcmp(op,"max") == 0){return max(x,y) ;}
   return 0;
 }
 
@@ -79,7 +92,7 @@ int main(int argc, char const *argv[])
   mpca_lang(MPCA_LANG_DEFAULT,
   "                                                     \
     number   : /-?[0-9]+([.]?\\d+)?/;                             \
-    operator : '+' | '-' | '*' | '/' | '%';                  \
+    operator : '+' | '-' | '*' | '/' | '%' | '^' | /['min''max']+/;                  \
     expr     : <number> | '(' <operator> <expr>+ ')' ;  \
     Ylispy    : /^/ <operator> <expr>+ /$/ ;             \
   ",
