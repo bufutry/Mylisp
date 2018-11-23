@@ -40,6 +40,52 @@ void currentTime(){
 
 }
 
+enum{LVAL_NUM,LVAL_ERR};
+enum{LERR_DIV_ZERO,LERR_BAD_OP,LERR_BAD_NUM};
+
+typedef struct 
+{
+  int type;
+  long num;
+  int err; 
+} lval;
+
+
+lval lval_num(long x){
+  lval v;
+  v.type = LVAL_NUM;
+  v.num = x;
+  return v;
+}
+
+lval lval_err(int x){
+  lval v;
+  v.type = LVAL_ERR;
+  v.err = x;
+  return v;
+}
+
+void lval_print(lval v){
+  switch(v.type){
+    case LVAL_NUM:printf("%ld\n",v.num);break;
+    case LVAL_ERR:
+    {
+      if (v.err == LERR_BAD_OP)
+      {
+        printf("Error: Invalid Operator!\n");
+      } else if (v.err == LERR_DIV_ZERO)
+      {
+        printf("Error: Division By Zero!\n");
+      }else if (v.err == LERR_BAD_NUM)
+      {
+        printf("Error: bad Number!\n");
+      }
+    }
+    break;
+  }
+
+}
+
 long max(long x,long y){
   return x > y ? x : y;
 }
@@ -48,27 +94,39 @@ long min(long x,long y){
    return x < y ? x : y;
 }
 
-long eval_op(long x , char * op ,long y){
-  if (strcmp(op,"+") == 0){return x + y ;}
-  if (strcmp(op,"-") == 0){return x - y ;}
-  if (strcmp(op,"*") == 0){return x * y ;}
-  if (strcmp(op,"/") == 0){return x / y ;}
-  if (strcmp(op,"%") == 0){return x % y ;}
-  if (strcmp(op,"^") == 0){return pow(x,y) ;}
-  if (strcmp(op,"min") == 0){return min(x,y) ;}
-  if (strcmp(op,"max") == 0){return max(x,y) ;}
-  return 0;
+lval eval_op(lval x , char * op ,lval y){
+
+  if (x.type == LVAL_ERR){return x;}
+  if (y.type == LVAL_ERR){return y;}
+
+  if (strcmp(op,"+") == 0){return lval_num(x.num + y.num) ;}
+  if (strcmp(op,"-") == 0){return lval_num(x.num - y.num) ;}
+  if (strcmp(op,"*") == 0){return lval_num(x.num * y.num) ;}
+  if (strcmp(op,"^") == 0){return lval_num(pow(x.num,y.num));}
+  if (strcmp(op,"min") == 0){return lval_num(min(x.num,y.num)) ;}
+  if (strcmp(op,"max") == 0){return lval_num(max(x.num,y.num));}
+
+  if (strcmp(op,"/") == 0){
+    return y.num == 0 ? lval_err(LERR_DIV_ZERO) : lval_num(x.num / y.num);
+  }
+  if (strcmp(op,"%") == 0)
+  {
+    return y.num == 0 ? lval_err(LERR_DIV_ZERO) : lval_num(x.num % y.num);
+  }
+  return lval_err(LERR_BAD_OP);
 }
 
-long eval(mpc_ast_t* t){
+lval eval(mpc_ast_t* t){
 
   if (strstr(t->tag,"number"))
   {
-    return atol(t->contents);
+    errno = 0;
+    long x = strtol(t->contents, NULL, 10);
+    return errno != ERANGE ? lval_num(x) : lval_err(LERR_BAD_NUM);
   }
 
   char *op = t->children[1]->contents;
-  long x = eval(t->children[2]);
+  lval x = eval(t->children[2]);
 
   int i = 3;
   while (strstr(t->children[i]->tag, "expr")) {
@@ -98,7 +156,7 @@ int main(int argc, char const *argv[])
   ",
   Number, Operator, Expr, YLispy);
 
-	printf("YLispy Version 0.0.0.2  ");
+	printf("YLispy Version 0.0.0.3  ");
 	currentTime();
 	puts("Press Ctrl+c to Exit\n");
 	while(1){
@@ -114,8 +172,9 @@ int main(int argc, char const *argv[])
         // printf("Tag: %s\n", a->tag);
         // printf("Contents: %s\n", a->contents);
         // printf("Number of children: %i\n", a->children_num);
-
-        printf("%ld\n", eval(r.output));
+        lval result = eval(r.output);
+        lval_print(result);
+        // printf("%ld\n", eval(r.output));
         /* Get First Child */
         // mpc_ast_t* c0 = a->children[0];
         // printf("First Child Tag: %s\n", c0->tag);
